@@ -1,11 +1,16 @@
 const fs = require('fs')
 const Loki = require('lokijs')
+const lfsa = require('../node_modules/lokijs/src/loki-fs-structured-adapter')
 const prettyBytes = require('pretty-bytes')
+const folderSize = require('get-folder-size')
 
 const Logger = require('../modules/logger')
 const LOGGER = new Logger('stats')
 
-const { STORAGE_PATH } = require('../config/main.config')
+const { 
+    STORAGE_PATH,
+    STORAGE_FILENAME
+} = require('../config/main.config')
 
 const GETTY_REGEX = /_\d+_gettyimages-\d+\.(jpg|jpeg|JPG|JPEG|png|PNG|gif|GIF)/gm
 
@@ -38,19 +43,21 @@ let main = _ => {
     })
 
     // Storage stats
-    let stats = fs.statSync(STORAGE_PATH)
-    
-    LOGGER.log('Done.')
+    let stats = fs.statSync(STORAGE_PATH + STORAGE_FILENAME)
+    folderSize(STORAGE_PATH, (err, size) => {
 
-    console.log()
-    console.log(`  Articles total: ${numDocs}`)
-    console.log(`  Articles with images from Getty: ${gettyArticles.length}`)
-    console.log(`  Articles with at least one Getty ID exposed: ${gettyIDArticles.length}`)
-    console.log()
-    console.log(`  ##### Storage`)
-    console.log(`  Size: ${prettyBytes(stats.size)}`)
-    console.log(`  Last Modified: ${new Date(stats.mtimeMs)}`)
-    console.log()
+        LOGGER.log('Done.')
+
+        console.log()
+        console.log(`  Articles total: ${numDocs}`)
+        console.log(`  Articles with images from Getty: ${gettyArticles.length}`)
+        console.log(`  Articles with at least one Getty ID exposed: ${gettyIDArticles.length}`)
+        console.log()
+        console.log(`  ##### Storage`)
+        console.log(`  Size: ${prettyBytes(size)}`)
+        console.log(`  Last Modified: ${new Date(stats.mtimeMs)}`)
+        console.log()
+    })
 }
 
 let initCollections = _ => {
@@ -62,8 +69,10 @@ let initCollections = _ => {
 }
 
 // Initialise database
-LOGGER.log(`Initialising database from file ${STORAGE_PATH}`)
-const db = new Loki(STORAGE_PATH, {
+LOGGER.log(`Initialising database from file ${STORAGE_PATH + STORAGE_FILENAME}`)
+const adapter = new lfsa()
+const db = new Loki(STORAGE_PATH + STORAGE_FILENAME, {
+    adapter: adapter,
     autoload: true,
     autoloadCallback: initCollections
 })

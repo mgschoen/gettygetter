@@ -85,5 +85,6 @@ module.exports = {
         '/news/entertainment_and_arts',
         '/news/health'
     ],
-    STORAGE_PATH: APP_ROOT + '/data/storage.json'
+    STORAGE_PATH: APP_ROOT + '/data/',
+    STORAGE_FILENAME: 'storage.json'
 }

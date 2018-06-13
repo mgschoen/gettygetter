@@ -8,7 +8,8 @@ const Logger = require('./modules/logger')
 const { 
     BBC_BASEURL, 
     BBC_SECTION_URLS,
-    STORAGE_PATH
+    STORAGE_PATH,
+    STORAGE_FILENAME
  } = require('./config/main.config')
 
 const LOGGER = new Logger('main')
@@ -92,7 +93,7 @@ let main = _ => {
 
 // Initialise database
 const adapter = new lfsa()
-const db = new Loki(STORAGE_PATH, {
+const db = new Loki(STORAGE_PATH + STORAGE_FILENAME, {
     adapter: adapter,
     autoload: true,
     autoloadCallback: initCollections
