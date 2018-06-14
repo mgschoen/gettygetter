@@ -5,6 +5,7 @@
   "main": "app.js",
   "scripts": {
     "start": "node .",
+    "poststart": "yarn run stats",
     "stats": "node ./scripts/stats"
   },
   "author": "Martin Schön",
