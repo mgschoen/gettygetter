@@ -17,17 +17,23 @@ const GETTY_REGEX = /_\d+_gettyimages-\d+\.(jpg|jpeg|JPG|JPEG|png|PNG|gif|GIF)/g
 let main = _ => {
     LOGGER.log('Determining statistics...')
     let numDocs = collection.count()
-    let gettyArticles = collection.where(doc => {
+    let gettyArticles = 0,
+        gettyIDArticles = 0
+    collection.updateWhere(doc => {
         let images = doc.article.images
         for (let img of images) {
             let copyright = img.copyright
             if (copyright && copyright.toLowerCase().indexOf('getty') >= 0) {
+                gettyArticles++
                 return true
             }
         }
         return false
+    }, doc => {
+        doc.getty = true
+        return doc
     })
-    let gettyIDArticles = gettyArticles.filter(doc => {
+    collection.updateWhere(doc => {
         let images = doc.article.images
         for (let img of images) {
             let copyright = img.copyright
@@ -35,12 +41,18 @@ let main = _ => {
                 // this is a getty image - but is the ID exposed?
                 let filename = img.src.split('/').pop()
                 if (GETTY_REGEX.test(filename)) {
+                    gettyIDArticles++
                     return true
                 }
             }
         }
         return false
+    }, doc => {
+        doc.gettyID = true
+        return doc
     })
+
+    db.saveDatabase()
 
     // Storage stats
     let stats = fs.statSync(STORAGE_PATH + STORAGE_FILENAME)
@@ -50,8 +62,8 @@ let main = _ => {
 
         console.log()
         console.log(`  Articles total: ${numDocs}`)
-        console.log(`  Articles with images from Getty: ${gettyArticles.length}`)
-        console.log(`  Articles with at least one Getty ID exposed: ${gettyIDArticles.length}`)
+        console.log(`  Articles with images from Getty: ${gettyArticles}`)
+        console.log(`  Articles with at least one Getty ID exposed: ${gettyIDArticles}`)
         console.log()
         console.log(`  ##### Storage`)
         console.log(`  Size: ${prettyBytes(size)}`)
