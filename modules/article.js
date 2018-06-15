@@ -40,7 +40,7 @@ let getArticleContent = articleObject => {
                 resolve()
             }
             if (content) {
-                paragraphs = content.querySelectorAll('p, ul li')
+                paragraphs = content.querySelectorAll('p, ul li, h2')
                 figures = content.querySelectorAll('figure')
                 images = []
 
@@ -82,7 +82,10 @@ let getArticleContent = articleObject => {
                         paragraphs: []
                     }
                     for (let p of paragraphs) {
-                        articleObject.article.paragraphs.push(p.textContent)
+                        articleObject.article.paragraphs.push({
+                            type: p.nodeName,
+                            content: p.textContent
+                        })
                     }
                     resolve(articleObject)
                 } else {
