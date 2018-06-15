@@ -7,7 +7,8 @@
     "start": "node .",
     "poststart": "yarn run stats",
     "stats": "node ./scripts/stats",
-    "rescrape": "node ./scripts/rescrape"
+    "rescrape": "node ./scripts/rescrape",
+    "backup": "node ./scripts/backup"
   },
   "author": "Martin Schön",
   "license": "MIT",
