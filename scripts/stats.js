@@ -19,6 +19,7 @@ let main = _ => {
     let numDocs = collection.count()
     let gettyArticles = 0,
         gettyIDArticles = 0
+    // Search for images where credit contains "getty"
     collection.updateWhere(doc => {
         let images = doc.article.images
         for (let img of images) {
@@ -33,17 +34,20 @@ let main = _ => {
         doc.getty = true
         return doc
     })
+    // Search for image urls that match the getty pattern (including teaser image)
     collection.updateWhere(doc => {
-        let images = doc.article.images
-        for (let img of images) {
-            let copyright = img.copyright
-            if (copyright && copyright.toLowerCase().indexOf('getty') >= 0) {
-                // this is a getty image - but is the ID exposed?
-                let filename = img.src.split('/').pop()
-                if (GETTY_REGEX.test(filename)) {
-                    gettyIDArticles++
-                    return true
-                }
+        let imageUrls = doc.article.images.map(img => {
+            return img.src
+        })
+        if (doc.teaser.img) {
+            imageUrls.push(doc.teaser.img)
+        }
+        for (let url of imageUrls) {
+            let filename = url.split('/').pop()
+            if (GETTY_REGEX.test(filename)) {
+                LOGGER.log(`Found Getty ID in ${doc.url}: ${filename}`)
+                gettyIDArticles++
+                return true
             }
         }
         return false
