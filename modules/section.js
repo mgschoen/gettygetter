@@ -58,10 +58,14 @@ let getArticleTeasers = (url, sectionName) => {
 
                 let img = teaser.querySelector('img')
                 let imgPlaceholder = teaser.querySelector('.js-delayed-image-load')
+                let imgurl
                 if (img) {
-                    articleObject.teaser.img = img.getAttribute('src')
+                    imgurl = img.getAttribute('src')
                 } else if (imgPlaceholder) {
-                    articleObject.teaser.img = imgPlaceholder.getAttribute('data-src')
+                    imgurl = imgPlaceholder.getAttribute('data-src')
+                }
+                if (imgurl) {
+                    articleObject.teaser.img = { src: imgurl }
                 }
 
                 result.push(articleObject)
