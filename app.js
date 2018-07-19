@@ -3,6 +3,7 @@ const lfsa = require('./node_modules/lokijs/src/loki-fs-structured-adapter')
 
 const { getArticleTeasers } = require('./modules/section')
 const { getArticleContent } = require('./modules/article')
+const { setFlags } = require('./modules/set-flags')
 const Logger = require('./modules/logger')
 
 const { 
@@ -52,6 +53,13 @@ let articleRequestLoop = (corpus, index) => {
             articleRequestLoop(corpus, nextIndex)
         } else {
             LOGGER.log('Done scraping.')
+            LOGGER.log('Postprocessing corpus...')
+            setFlags(db).then(() => {
+                LOGGER.log('Done.')
+            })
+            .catch(e => {
+                LOGGER.warn(e.getMessage())
+            })
         }
     }
 
