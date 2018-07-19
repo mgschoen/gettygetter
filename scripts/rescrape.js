@@ -28,6 +28,7 @@ let articleRequestLoop = (urls, index) => {
         .then(result => {
             let collectionItem = collection.findOne({url: url})
             if (result) {
+                collectionItem.published = result.published
                 collectionItem.article = result.article
             } else {
                 let newArticleObject = {

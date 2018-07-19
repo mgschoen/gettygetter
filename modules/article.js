@@ -31,10 +31,15 @@ let getArticleContent = articleObject => {
             const document = dom.window.document
 
             const story = document.querySelector('.story-body')
-            let headline, content, paragraphs, figures, images
+            let headline, content, date, paragraphs, figures, images
             if (story) {
                 headline = story.querySelector('.story-body__h1')
                 content = story.querySelector('.story-body__inner')
+                let dateNode = story.querySelector('.date')
+                if (dateNode) {
+                    let seconds = dateNode.getAttribute('data-seconds')
+                    date = seconds * 1000
+                }
             } else {
                 LOGGER.info('Skippped article because it does not contain element with class `story-body`')
                 resolve()
@@ -76,6 +81,7 @@ let getArticleContent = articleObject => {
                 }
 
                 if (headline) {
+                    articleObject.published = date
                     articleObject.article = {
                         headline: headline.textContent,
                         images: images,
