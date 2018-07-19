@@ -51,7 +51,6 @@ let articleRequestLoop = (corpus, index) => {
         if (nextIndex < corpus.length) {
             articleRequestLoop(corpus, nextIndex)
         } else {
-            // This is where we would print/store the corpus
             LOGGER.log('Done scraping.')
         }
     }

@@ -4,6 +4,7 @@ const lfsa = require('../node_modules/lokijs/src/loki-fs-structured-adapter')
 const prettyBytes = require('pretty-bytes')
 const folderSize = require('get-folder-size')
 
+const Util = require('../modules/util')
 const Logger = require('../modules/logger')
 const LOGGER = new Logger('stats')
 
@@ -17,45 +18,45 @@ const GETTY_REGEX = /_\d+_gettyimages-\d+\.(jpg|jpeg|JPG|JPEG|png|PNG|gif|GIF)/g
 let main = _ => {
     LOGGER.log('Determining statistics...')
     let numDocs = collection.count()
-    let gettyArticles = 0,
-        gettyIDArticles = 0
-    // Search for images where credit contains "getty"
-    collection.updateWhere(doc => {
-        let images = doc.article.images
-        for (let img of images) {
-            let copyright = img.copyright
-            if (copyright && copyright.toLowerCase().indexOf('getty') >= 0) {
-                gettyArticles++
-                return true
-            }
-        }
-        return false
-    }, doc => {
-        doc.getty = true
-        return doc
-    })
-    // Search for image urls that match the getty pattern (including teaser image)
-    collection.updateWhere(doc => {
-        let imageUrls = doc.article.images.map(img => {
-            return img.src
-        })
-        if (doc.teaser.img) {
-            imageUrls.push(doc.teaser.img)
-        }
-        for (let url of imageUrls) {
-            let filename = url.split('/').pop()
-            if (GETTY_REGEX.test(filename)) {
-                LOGGER.log(`Found Getty ID in ${doc.url}: ${filename}`)
-                gettyIDArticles++
-                return true
-            }
-        }
-        return false
-    }, doc => {
-        doc.gettyID = true
-        return doc
-    })
 
+    // lead image is defined as either first img in article or teaser image
+    let gettyLeadImageArticles = []
+    let gettyIDArticles = collection.where(doc => {
+        let foundGettyID = false,
+            foundGettyIDInLeadImage = false
+        // check teaser image
+        if (doc.teaser.img) {
+            let teaserImageID = Util.extractGettyID(doc.teaser.img.src)
+            if (teaserImageID) {
+                foundGettyID = true
+                foundGettyIDInLeadImage = true
+                doc.teaser.img.gettyID = teaserImageID
+            }
+        }
+        // check all images within article
+        for (let i = 0; i < doc.article.images.length; i++) {
+            let image = doc.article.images[i]
+            let imageGettyID = Util.extractGettyID(image.src)
+            if (imageGettyID) {
+                foundGettyID = true
+                image.gettyID = imageGettyID
+                if (i == 0) {
+                    foundGettyIDInLeadImage = true
+                }
+            }
+        }
+        // update doc
+        if (foundGettyID) {
+            doc.containsGettyID = true
+        }
+        if (foundGettyIDInLeadImage) {
+            doc.containsGettyIDInLeadImage = true
+            gettyLeadImageArticles.push(doc)
+        }
+        collection.update(doc)
+        return foundGettyID
+    })
+    
     db.saveDatabase()
 
     // Storage stats
@@ -66,8 +67,8 @@ let main = _ => {
 
         console.log()
         console.log(`  Articles total: ${numDocs}`)
-        console.log(`  Articles with images from Getty: ${gettyArticles}`)
-        console.log(`  Articles with at least one Getty ID exposed: ${gettyIDArticles}`)
+        console.log(`  Articles with at least one Getty ID exposed: ${gettyIDArticles.length}`)
+        console.log(`  Articles where lead image exposes Getty ID: ${gettyLeadImageArticles.length}`)
         console.log()
         console.log(`  ##### Storage`)
         console.log(`  Size: ${prettyBytes(size)}`)
