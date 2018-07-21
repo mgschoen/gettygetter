@@ -12,6 +12,11 @@ function setFlags (db) {
 
         // Use collection.where query as a substitute for forEach
         collection.where(doc => {
+            // reset incorrectly set flags from earlier versions
+            delete doc.gettyID
+            delete doc.containsGettyID
+            delete doc.containsGettyIDInLeadImage
+            
             let foundGettyID = false,
                 foundGettyIDInLeadImage = false
             // check teaser image

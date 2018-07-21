@@ -97,6 +97,7 @@ module.exports = {
         'preview',
         'thumb'
     ],
+    GETTYUI_IMAGEDETAIL_BASEURL: 'https://www.gettyimages.co.uk/license/',
     STORAGE_PATH: APP_ROOT + '/data/',
     STORAGE_FILENAME: 'storage.json'
 }

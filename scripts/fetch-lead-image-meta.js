@@ -1,5 +1,5 @@
 const DB = require('../modules/db')
-const Getty = require('../modules/getty/getty')
+const Getty = require('../modules/getty/api')
 const Logger = require('../modules/logger')
 const LOGGER = new Logger('fetch-lead-image-meta')
 
