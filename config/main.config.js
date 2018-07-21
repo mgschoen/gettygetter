@@ -5,7 +5,7 @@ module.exports = {
     BBC_SECTION_URLS: [
         '/news/world',
         '/news/world/africa',
-        /*'/news/world/asia',
+        '/news/world/asia',
         '/news/world/asia/china',
         '/news/world/asia/india',
         '/news/world/australia',
@@ -83,7 +83,7 @@ module.exports = {
         '/news/technology',
         '/news/science_and_environment',
         '/news/entertainment_and_arts',
-        '/news/health'*/
+        '/news/health'
     ],
     GETTYAPI_DEFAULT_FIELDS: [
         'detail_set',
