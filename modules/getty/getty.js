@@ -1,17 +1,17 @@
 const GettyClient = require('gettyimages-api')
 
-const Logger = require('./logger')
+const Logger = require('../logger')
 
 const { 
     GETTYAPI_DEFAULT_FIELDS
-} = require('../config/main.config')
+} = require('../../config/main.config')
 
 const GETTYAPI_KEY = process.env.GETTYAPI_KEY
 const GETTYAPI_SECRET = process.env.GETTYAPI_SECRET
 
 if (!GETTYAPI_KEY || !GETTYAPI_SECRET) {
     let LOGGER = new Logger('getty')
-    LOGGER.error('Please provide credentials for Getty API in environment variables\n' +
+    LOGGER.error('Please provide credentials for Getty API in environment variables ' +
         'GETTYAPI_KEY and GETTYAPI_SECRET. Exiting.')
     process.exit(1)
 }

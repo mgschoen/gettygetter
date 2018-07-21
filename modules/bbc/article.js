@@ -1,9 +1,9 @@
 const request = require('request')
 const { JSDOM } = require('jsdom')
 
-const Logger = require('./logger')
+const Logger = require('../logger')
 
-const { BBC_BASEURL } = require('../config/main.config')
+const { BBC_BASEURL } = require('../../config/main.config')
 
 let getArticleContent = articleObject => {
     let LOGGER = new Logger('article', articleObject.url || 'unknown')

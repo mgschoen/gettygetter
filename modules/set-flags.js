@@ -1,4 +1,4 @@
-const Util = require('../modules/util')
+const Util = require('./util')
 
 function setFlags (db) {
 

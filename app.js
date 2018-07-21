@@ -1,6 +1,6 @@
 const DB = require('./modules/db')
-const { getArticleTeasers } = require('./modules/section')
-const { getArticleContent } = require('./modules/article')
+const { getArticleTeasers } = require('./modules/bbc/section')
+const { getArticleContent } = require('./modules/bbc/article')
 const { setFlags } = require('./modules/set-flags')
 const Logger = require('./modules/logger')
 

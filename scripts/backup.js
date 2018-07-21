@@ -8,7 +8,7 @@ const { STORAGE_PATH, STORAGE_FILENAME } = require('../config/main.config')
 let BACKUP_PATH = process.env.GETTYGETTER_BACKUP_PATH
 
 if (!BACKUP_PATH) {
-    LOGGER.error('No backup path specified in environment variable GETTYGETTER_BACKUP PATH. Exiting.')
+    LOGGER.error('No backup path specified in environment variable GETTYGETTER_BACKUP_PATH. Exiting.')
     process.exit(1)
 }
 

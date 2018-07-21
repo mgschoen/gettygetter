@@ -1,6 +1,6 @@
 const request = require('request')
 const { JSDOM } = require('jsdom')
-const Logger = require('./logger')
+const Logger = require('../logger')
 
 let getArticleTeasers = (url, sectionName) => {
     let LOGGER = new Logger('section', sectionName)

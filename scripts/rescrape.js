@@ -2,7 +2,7 @@ const DB = require('../modules/db')
 const Logger = require('../modules/logger')
 const LOGGER = new Logger('rescrape')
 
-const { getArticleContent } = require('../modules/article')
+const { getArticleContent } = require('../modules/bbc/article')
 
 let articleRequestLoop = (urls, index) => {
 

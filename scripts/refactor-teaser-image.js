@@ -1,6 +1,6 @@
 const DB = require('../modules/db')
 const Logger = require('../modules/logger')
-const LOGGER = new Logger('refactor-reaser-image')
+const LOGGER = new Logger('refactor-teaser-image')
 
 DB().then(db => {
     let collection = db.getCollection('articles')
