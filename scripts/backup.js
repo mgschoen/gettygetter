@@ -3,7 +3,6 @@ const fs = require('fs')
 const Logger = require('../modules/logger')
 const LOGGER = new Logger('backup')
 
-const APP_ROOT = require('app-root-path')
 const { STORAGE_PATH, STORAGE_FILENAME } = require('../config/main.config')
 
 let BACKUP_PATH = process.env.GETTYGETTER_BACKUP_PATH

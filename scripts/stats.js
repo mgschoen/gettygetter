@@ -1,9 +1,8 @@
 const fs = require('fs')
-const Loki = require('lokijs')
-const lfsa = require('../node_modules/lokijs/src/loki-fs-structured-adapter')
 const prettyBytes = require('pretty-bytes')
 const folderSize = require('get-folder-size')
 
+const DB = require('../modules/db')
 const Logger = require('../modules/logger')
 const LOGGER = new Logger('stats')
 
@@ -12,8 +11,10 @@ const {
     STORAGE_FILENAME
 } = require('../config/main.config')
 
-let main = _ => {
+DB().then(db => {
+
     LOGGER.log('Determining statistics...')
+    let collection = db.getCollection('articles')
     let numDocs = collection.count()
 
     let gettyIDArticles = collection.find({containsGettyID: true})
@@ -35,22 +36,7 @@ let main = _ => {
         console.log(`  Last Modified: ${new Date(stats.mtimeMs)}`)
         console.log()
     })
-}
 
-let initCollections = _ => {
-    collection = db.getCollection('articles')
-    if (!collection) {
-        collection = db.addCollection('articles')
-    }
-    main()
-}
-
-// Initialise database
-LOGGER.log(`Initialising database from file ${STORAGE_PATH + STORAGE_FILENAME}`)
-const adapter = new lfsa()
-const db = new Loki(STORAGE_PATH + STORAGE_FILENAME, {
-    adapter: adapter,
-    autoload: true,
-    autoloadCallback: initCollections
+}).catch(e => {
+    LOGGER.warn(e.message)
 })
-let collection

@@ -1,6 +1,4 @@
-const Loki = require('lokijs')
-const lfsa = require('./node_modules/lokijs/src/loki-fs-structured-adapter')
-
+const DB = require('./modules/db')
 const { getArticleTeasers } = require('./modules/section')
 const { getArticleContent } = require('./modules/article')
 const { setFlags } = require('./modules/set-flags')
@@ -8,9 +6,7 @@ const Logger = require('./modules/logger')
 
 const { 
     BBC_BASEURL, 
-    BBC_SECTION_URLS,
-    STORAGE_PATH,
-    STORAGE_FILENAME
+    BBC_SECTION_URLS
  } = require('./config/main.config')
 
 const LOGGER = new Logger('main')
@@ -84,25 +80,12 @@ let articleRequestLoop = (corpus, index) => {
     }
 }
 
-let initCollections = _ => {
-    collection = db.getCollection('articles')
-    if (!collection) {
-        collection = db.addCollection('articles')
-    }
-    main()
-}
+let db, collection
 
-let main = _ => {
+DB().then(database => {
+    db = database
+    collection = db.getCollection('articles')
     sectionRequestLoop(BBC_SECTION_URLS, 0, [], corpus => {
         articleRequestLoop(corpus, 0)
     })
-}
-
-// Initialise database
-const adapter = new lfsa()
-const db = new Loki(STORAGE_PATH + STORAGE_FILENAME, {
-    adapter: adapter,
-    autoload: true,
-    autoloadCallback: initCollections
 })
-let collection

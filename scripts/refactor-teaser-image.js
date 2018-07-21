@@ -1,18 +1,12 @@
-const Loki = require('lokijs')
-const lfsa = require('../node_modules/lokijs/src/loki-fs-structured-adapter')
-
+const DB = require('../modules/db')
 const Logger = require('../modules/logger')
 const LOGGER = new Logger('refactor-reaser-image')
 
-const { 
-    STORAGE_PATH,
-    STORAGE_FILENAME
-} = require('../config/main.config')
-
-function main () {
+DB().then(db => {
+    let collection = db.getCollection('articles')
     collection.updateWhere(doc => {
         let teaserImage = doc.teaser.img
-        if (teaserImage) {
+        if (teaserImage && typeof teaserImage === 'string') {
             LOGGER.log(`Refactoring teaser image: ${teaserImage}`)
             return true
         }
@@ -25,22 +19,6 @@ function main () {
     })
 
     db.saveDatabase()
-}
-
-function initCollections () {
-    collection = db.getCollection('articles')
-    if (!collection) {
-        collection = db.addCollection('articles')
-    }
-    main()
-}
-
-// Initialise database
-LOGGER.log(`Initialising database from file ${STORAGE_PATH + STORAGE_FILENAME}`)
-const adapter = new lfsa()
-const db = new Loki(STORAGE_PATH + STORAGE_FILENAME, {
-    adapter: adapter,
-    autoload: true,
-    autoloadCallback: initCollections
+}).catch(e => {
+    LOGGER.warn(e.message)
 })
-let collection

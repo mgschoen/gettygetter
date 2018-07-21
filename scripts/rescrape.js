@@ -1,15 +1,8 @@
-const Loki = require('lokijs')
-const lfsa = require('../node_modules/lokijs/src/loki-fs-structured-adapter')
-
+const DB = require('../modules/db')
 const Logger = require('../modules/logger')
 const LOGGER = new Logger('rescrape')
 
 const { getArticleContent } = require('../modules/article')
-
-const { 
-    STORAGE_PATH,
-    STORAGE_FILENAME
-} = require('../config/main.config')
 
 let articleRequestLoop = (urls, index) => {
 
@@ -52,32 +45,21 @@ let articleRequestLoop = (urls, index) => {
             db.saveDatabase()
         })
         .catch(error => {
-            LOGGER.warn(`Error scraping article "${article.url}": ${error.message}`)
+            LOGGER.warn(`Error scraping article "${url}": ${error.message}`)
             console.log(error.stack)
         })
         .then(nextTick)
 }
-let main = _ => {
+
+let db, collection
+
+DB().then(database => {
+    db = database
+    collection = db.getCollection('articles')
     let urls = collection.find().map(doc => {
         return doc.url
     })
     articleRequestLoop(urls, 0)
-}
-
-let initCollections = _ => {
-    collection = db.getCollection('articles')
-    if (!collection) {
-        collection = db.addCollection('articles')
-    }
-    main()
-}
-
-// Initialise database
-LOGGER.log(`Initialising database from file ${STORAGE_PATH + STORAGE_FILENAME}`)
-const adapter = new lfsa()
-const db = new Loki(STORAGE_PATH + STORAGE_FILENAME, {
-    adapter: adapter,
-    autoload: true,
-    autoloadCallback: initCollections
+}).catch(e => {
+    LOGGER.warn(e.message)
 })
-let collection
