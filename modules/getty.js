@@ -10,6 +10,7 @@ const GETTYAPI_KEY = process.env.GETTYAPI_KEY
 const GETTYAPI_SECRET = process.env.GETTYAPI_SECRET
 
 if (!GETTYAPI_KEY || !GETTYAPI_SECRET) {
+    let LOGGER = new Logger('getty')
     LOGGER.error('Please provide credentials for Getty API in environment variables\n' +
         'GETTYAPI_KEY and GETTYAPI_SECRET. Exiting.')
     process.exit(1)
