@@ -1,5 +1,6 @@
 const GettyClient = require('gettyimages-api')
 
+const KeywordsInterface = require('./keywords')
 const Logger = require('../logger')
 
 const { 
@@ -82,6 +83,15 @@ function fetchLeadImageMeta (db) {
                 for (let imageMeta of meta) {
                     let imageID = imageMeta.id
                     let articleIDs = imageArticleRelation[imageID]
+                    // update the keywords collection with new terms
+                    let keywords = []
+                    for (let kw of imageMeta.keywords) {
+                        let keywordLokiID = Keywords.insertWithObject(kw)
+                        if (keywordLokiID) {
+                            keywords.push(keywordLokiID)
+                        }
+                    }
+                    // store metadata in each article associated with the image
                     for (articleID of articleIDs) {
                         let article = window.filter(doc => {
                             return doc.$loki === articleID
@@ -90,7 +100,7 @@ function fetchLeadImageMeta (db) {
                             id: imageMeta.id,
                             title: imageMeta.title,
                             caption: imageMeta.caption,
-                            keywords: imageMeta.keywords,
+                            keywords: keywords,
                             url: imageMeta.display_sizes[0].uri
                         }
                         article.gettyMeta = true
@@ -111,6 +121,7 @@ function fetchLeadImageMeta (db) {
     }
 
     let LOGGER = new Logger('getty', 'fetchLeadImageMeta')
+    let Keywords = new KeywordsInterface(db)
     let collection = db.getCollection('articles')
     let articles = collection.find({containsGettyIDInLeadImage: true}).filter(doc => {
         return (doc.leadImage) ? false : true

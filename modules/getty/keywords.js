@@ -1,13 +1,15 @@
+const Logger = require('../logger')
 
 /**
  * Interface for interacting with the 'keywords' collection in the database
- * @param {object} db Loki.js database
+ * @param {object} database Loki.js database
  */
-module.exports = function (db) {
+module.exports = function (database) {
     
-    this.collection = db.getCollection('keywords')
+    this.db = database
+    this.collection = this.db.getCollection('keywords')
     if (!this.collection) {
-        db.addCollection('keywords')
+        this.collection = this.db.addCollection('keywords')
     }
 
     /**
@@ -35,54 +37,75 @@ module.exports = function (db) {
      * @returns {object|null} keyword, null if it does not exist
      */
     this.fetchWithId = function (id) {
-        return this.collection.findOne({gettyID: id})
+        return this.collection.findOne({keyword_id: id})
     }
 
     /**
      * Attempts to insert a new keyword object with the specified
-     * string as text. If such entries already exist, returns
-     * all existing keywords with the specified text
+     * string as text. Will not insert anything if the specified
+     * term already exists in the collection.
      * @param {string} text text for the new keyword
-     * @returns {object|array} new keyword if successfully inserted, otherwise
-     *      list of all existing keywords with the specified text
+     * @returns {number|null} Loki id of the inserted or existing keyword,
+     *      null if existing entries were disambiguous
      */
     this.insertWithString = function (text) {
         let existingTerms = this.fetchWithString(text)
         if (existingTerms.length === 0) {
-            return this.collection.insert({
+            let keyword = this.collection.insert({
                 text: text,
                 type: 'Unknown',
                 relevance: null
             })
+            this.db.saveDatabase()
+            return keyword.$loki
+        } else if (existingTerms.length === 1) {
+            return existingTerms[0].$loki
         }
-        return existingTerms
+        return null
     }
 
     /**
      * Attempts to insert a new keyword object into the collection.
-     * If the specified 'id' field already exists in the database,
-     * no changes are made and the existing object is returned
+     * Will update any entry that matches the text of the new keyword
+     * but has no keyword_id. Will not insert anything if keyword_id
+     * already exists in collection.
      * @param {object} keyword object representing a Getty keyword, must have at least
      *      the following fields specified:
      *      {
-     *          "id": "123455",
+     *          "keyword_id": "123455",
      *          "text": "San Diego Comic-Con"
      *      }
-     * @returns {object} inserted or existing keyword object
+     * @returns {number} Loki id of existing, updated or inserted keyword
      */
     this.insertWithObject = function (keyword) {
-        if (!keyword.id || !keyword.text) {
-            throw new Error(`keyword object must have at least 'id' and 'text' specified`)
+        if (!keyword.keyword_id || !keyword.text) {
+            new Logger('keywords', 'insertWithObject')
+                .info(`Rejecting a keyword with keyword_id:${keyword.keyword_id} and text:${keyword.text}`)
             return null
         }
-        let existing = this.fetchWithId(keyword.id)
-        if (!existing) {
-            let insertObject = {...keyword}
-            insertObject.gettyID = keyword.id
-            delete insertObject.id
-            return this.collection.insert(insertObject)
+        let identical = this.fetchWithId(keyword.keyword_id)
+        if (identical) {
+            // Keyword is already in collection
+            return identical.$loki
         }
-        return existing
+        let sameText = this.fetchWithString(keyword.text)
+        for (let entry of sameText) {
+            if (!entry.keyword_id) {
+                // A scraped version of this keyword exists.
+                // Update it with all the details we now know.
+                for (let key in keyword) {
+                    entry[key] = keyword[key]
+                }
+                this.collection.update(entry)
+                this.db.saveDatabase()
+                return entry.$loki
+            }
+        }
+        // Neither the identical nor a scraped version of this
+        // keyword exists. Let's store it in a new object.
+        let newKeyword = this.collection.insert(keyword)
+        this.db.saveDatabase()
+        return newKeyword.$loki
     }
 
 }
