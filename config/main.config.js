@@ -85,9 +85,6 @@ module.exports = {
         '/news/entertainment_and_arts',
         '/news/health'
     ],
-    GETTYAPI_BASEURL: 'https://api.gettyimages.com/v3/',
-    GETTYAPI_KEY: 'vy2byfdkp6pz73q5mv25ha87',
-    GETTYAPI_SECRET: '3D3tqZhVK8MMfjWaCUT8q6DEbbcaKdGSmtZ6tuvREHeA3',
     GETTYAPI_DEFAULT_FIELDS: [
         'detail_set',
         'comp',
