@@ -2,6 +2,7 @@ const DB = require('./modules/db')
 const { getArticleTeasers } = require('./modules/bbc/section')
 const { getArticleContent } = require('./modules/bbc/article')
 const { setFlags } = require('./modules/set-flags')
+const Getty = require('./modules/getty/api')
 const Logger = require('./modules/logger')
 
 const { 
@@ -51,7 +52,12 @@ let articleRequestLoop = (corpus, index) => {
             LOGGER.log('Done scraping.')
             LOGGER.log('Postprocessing corpus...')
             setFlags(db).then(() => {
-                LOGGER.log('Done.')
+                LOGGER.info('Fetching lead image metadata for the whole corpus')
+                Getty.fetchLeadImageMeta(db).then(() => {
+                    LOGGER.log('Done.')
+                }).catch(e => {
+                    LOGGER.warn(`Error fetching image metadata: ${e.message}`)
+                })
             })
             .catch(e => {
                 LOGGER.warn(e.getMessage())

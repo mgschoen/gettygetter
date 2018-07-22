@@ -46,7 +46,7 @@ module.exports = function (database) {
      * term already exists in the collection.
      * @param {string} text text for the new keyword
      * @returns {number|null} Loki id of the inserted or existing keyword,
-     *      null if existing entries were disambiguous
+     *      null if existing entries were ambiguous
      */
     this.insertWithString = function (text) {
         let existingTerms = this.fetchWithString(text)
