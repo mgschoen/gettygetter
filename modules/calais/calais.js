@@ -30,13 +30,14 @@ function groupObjectList (list, groupProperty, includeOther) {
 module.exports = function (database) {
 
     this.db = database
-    this.collection = this.db.getCollection('calais')
-    if (!this.collection) {
-        this.collection = this.db.addCollection('calais')
+    this.articleCollection = this.db.getCollection('articles')
+    this.calaisCollection = this.db.getCollection('calais')
+    if (!this.calaisCollection) {
+        this.calaisCollection = this.db.addCollection('calais')
     }
 
     this.getFromStorage = function (articleId) {
-        let queryResult = this.collection.find({forArticle: articleId})
+        let queryResult = this.calaisCollection.find({forArticle: articleId})
         if (queryResult.length === 1) {
             return queryResult[0]
         } else if (queryResult.lenght < 1) {
@@ -93,12 +94,19 @@ module.exports = function (database) {
                 dbEntry.forArticle = articleId
     
                 // Update the storage
-                this.collection.removeWhere({forArticle: articleId})
-                this.collection.insert(dbEntry)
-                this.db.saveDatabase()
-    
-                LOGGER.info(`Stored about ${Object.keys(body).length - 3} tags for article $${articleId} successfully`)
-                resolve()
+                this.calaisCollection.removeWhere({forArticle: articleId})
+                this.calaisCollection.insert(dbEntry)
+                let article = this.articleCollection.findOne({$loki: articleId})
+                article.calaisTags = true
+                this.articleCollection.update(article)
+                this.db.saveDatabase(err => {
+                    if (err) {
+                        reject(err)
+                        return
+                    }
+                    LOGGER.info(`Stored about ${Object.keys(body).length - 3} tags for article $${articleId} successfully`)
+                    resolve()
+                })
             })
         })
     }
