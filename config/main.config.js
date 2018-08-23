@@ -99,5 +99,6 @@ module.exports = {
     ],
     GETTYUI_IMAGEDETAIL_BASEURL: 'https://www.gettyimages.co.uk/license/',
     STORAGE_PATH: APP_ROOT + '/data/',
-    STORAGE_FILENAME: 'storage.json'
+    STORAGE_FILENAME: 'storage.json',
+    CALAIS_BASEURL: 'https://api.thomsonreuters.com/permid/calais'
 }
