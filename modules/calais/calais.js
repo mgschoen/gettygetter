@@ -70,11 +70,15 @@ module.exports = function (database) {
                     return
                 }
     
-                let body = JSON.parse(responseBody)
-    
                 if (response.statusCode !== 200) {
                     let statusMessage = response.statusMessage
-                    let reason = (body.fault) ? body.fault.faultstring : 'Reason unknown'
+                    let reason
+                    try {
+                        let responseObject = JSON.parse(responseBody)
+                        reason = (responseObject.fault) ? responseObject.fault.faultstring : 'Reason unknown'
+                    } catch (error) {
+                        reason = responseBody
+                    }
                     let errorMessage = `${statusMessage}: ${reason}`
                     LOGGER.error(errorMessage)
                     reject(new Error(errorMessage))
@@ -82,6 +86,7 @@ module.exports = function (database) {
                 }
     
                 // Everything ok, start processing the response
+                let body = JSON.parse(responseBody)
                 let dbEntry = groupObjectList(body, '_typeGroup', false)
                 let entitiesByType = groupObjectList(dbEntry.entities, '_type', true)
                 dbEntry.entities = entitiesByType
