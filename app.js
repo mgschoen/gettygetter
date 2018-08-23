@@ -3,6 +3,7 @@ const { getArticleTeasers } = require('./modules/bbc/section')
 const { getArticleContent } = require('./modules/bbc/article')
 const { setFlags } = require('./modules/set-flags')
 const Getty = require('./modules/getty/api')
+const Calais = require('./modules/calais/calais')
 const Logger = require('./modules/logger')
 
 const { 
@@ -36,6 +37,39 @@ let sectionRequestLoop = (urls, index, corpus, finishedCallback) => {
         .then(nextTick)
 }
 
+let fetchMissingCalaisTags = () => {
+    return new Promise(async (resolve, reject) => {
+        let untaggedArticles = collection.find({calaisTags: {$ne: true}})
+        let CalaisInterface = new Calais(db)
+        LOGGER.info(`Fetching Calais tags for ${untaggedArticles.length} articles`)
+        // Fetch calais tags for all untagged articles
+        for (let article of untaggedArticles) {
+            let paragraphs = [...article.article.paragraphs]
+            paragraphs.unshift({
+                type: 'H1',
+                content: `${article.article.headline}.`
+            })
+            let fullText = paragraphs.reduce((acc, cur) => `${acc} ${cur.content}`, '')
+            // Init a loop of three tries for each article.
+            // Break this loop as soon as request was successful.
+            for (let iteration = 1; iteration < 4; iteration++) {
+                if (iteration > 1) {
+                    LOGGER.info(`Trying again (iteration ${iteration}/3)...`)
+                }
+                try {
+                    await CalaisInterface.fetchFromApi(article.$loki, fullText)
+                    break
+                } catch (error) {
+                    LOGGER.error(error.message)
+                }
+            }
+        }
+        // Note: This promise might be resolved, even though some articles
+        // are still untagged. For the moment, we accept this
+        resolve()
+    })
+}
+
 /**
  * Extracts contents of exactly one article in the corpus and triggers next
  * loop after extraction has finished
@@ -54,7 +88,10 @@ let articleRequestLoop = (corpus, index) => {
             setFlags(db).then(() => {
                 LOGGER.info('Fetching lead image metadata for the whole corpus')
                 Getty.fetchLeadImageMeta(db).then(() => {
-                    LOGGER.log('Done.')
+                    LOGGER.log('Done fetching image metadata.')
+                    fetchMissingCalaisTags().then(() => {
+                        LOGGER.log('Done.')
+                    })
                 }).catch(e => {
                     LOGGER.warn(`Error fetching image metadata: ${e.message}`)
                 })
