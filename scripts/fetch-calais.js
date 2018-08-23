@@ -17,11 +17,16 @@ DB().then(async db => {
                 content: `${article.article.headline}.`
             })
             let fullText = paragraphs.reduce((acc, cur) => `${acc} ${cur.content}`, '')
-            try {
-                await CalaisInterface.fetchFromApi(article.$loki, fullText)
-            } catch (error) {
-                LOGGER.error(`Script interrupted`)
-                process.exit(1)
+            for (let iteration = 1; iteration < 4; iteration++) {
+                if (iteration > 1) {
+                    LOGGER.info(`Trying again (iteration ${iteration}/3)...`)
+                }
+                try {
+                    await CalaisInterface.fetchFromApi(article.$loki, fullText)
+                    break
+                } catch (error) {
+                    LOGGER.error(error.message)
+                }
             }
         } else {
             LOGGER.info(`Skipping article $${article.$loki} because tags are already stored`)
