@@ -1,6 +1,6 @@
 {
   "name": "gettygetter",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Scraper for news articles that contain images by Getty image agency",
   "main": "app.js",
   "scripts": {
