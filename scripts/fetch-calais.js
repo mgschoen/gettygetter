@@ -11,7 +11,7 @@ DB().then(async db => {
 
     for (let article of allArticles) {
         if (!article.calaisTags) {
-            let paragraphs = article.article.paragraphs
+            let paragraphs = [...article.article.paragraphs]
             paragraphs.unshift({
                 type: 'H1',
                 content: `${article.article.headline}.`
