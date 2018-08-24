@@ -5,12 +5,15 @@ const LOGGER = new Logger('fetch-calais')
 
 DB().then(async db => {
     
-    let collection = db.getCollection('articles')
-    let allArticles = collection.find()
+    let articleCollection = db.getCollection('articles')
+    let allArticles = articleCollection.find()
+    let calaisCollection = db.getCollection('calais')
     let CalaisInterface = new Calais(db)
 
     for (let article of allArticles) {
-        if (!article.calaisTags) {
+        let articleId = article.$loki
+        let existingCalais = calaisCollection.findOne({forArticle: articleId})
+        if (!existingCalais) {
             let paragraphs = [...article.article.paragraphs]
             paragraphs.unshift({
                 type: 'H1',
