@@ -1,4 +1,4 @@
-const DB = require('./modules/db')
+const DB = require('./modules/db/loki')
 const { getArticleTeasers } = require('./modules/bbc/section')
 const { getArticleContent } = require('./modules/bbc/article')
 const { setFlags } = require('./modules/set-flags')

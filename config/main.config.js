@@ -99,6 +99,12 @@ module.exports = {
     ],
     GETTYUI_IMAGEDETAIL_BASEURL: 'https://www.gettyimages.co.uk/license/',
     STORAGE_PATH: APP_ROOT + '/data/',
-    STORAGE_FILENAME: 'storage.json',
-    CALAIS_BASEURL: 'https://api.thomsonreuters.com/permid/calais'
+    STORAGE_FILENAME: 'recover.storage.json',
+    CALAIS_BASEURL: 'https://api.thomsonreuters.com/permid/calais',
+    MONGO_HOST: 'localhost',
+    MONGO_PORT: '27017',
+    MONGO_DB: 'picpic',
+    MONGO_REQUIRED_COLLECTIONS: ['articles', 'keywords', 'calais'],
+    ARTICLE_REQUIRED_FIELDS: ['teaser', 'section', 'url', 'article'],
+    KEYWORD_REQUIRED_FIELDS: ['text', 'type']
 }

@@ -1,4 +1,4 @@
-const DB = require('../modules/db')
+const DB = require('../modules/db/loki')
 const Logger = require('../modules/logger')
 const LOGGER = new Logger('refactor-teaser-image')
 

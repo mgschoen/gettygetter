@@ -2,7 +2,7 @@ const fs = require('fs')
 const prettyBytes = require('pretty-bytes')
 const folderSize = require('get-folder-size')
 
-const DB = require('../modules/db')
+const DB = require('../modules/db/loki')
 const Logger = require('../modules/logger')
 const LOGGER = new Logger('stats')
 

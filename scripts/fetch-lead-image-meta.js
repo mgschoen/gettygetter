@@ -1,4 +1,4 @@
-const DB = require('../modules/db')
+const DB = require('../modules/db/loki')
 const Getty = require('../modules/getty/api')
 const Logger = require('../modules/logger')
 const LOGGER = new Logger('fetch-lead-image-meta')

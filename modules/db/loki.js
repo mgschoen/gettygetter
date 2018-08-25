@@ -1,13 +1,13 @@
 const Loki = require('lokijs')
-const lfsa = require('../node_modules/lokijs/src/loki-fs-structured-adapter')
+const lfsa = require('lokijs/src/loki-fs-structured-adapter')
 
-const Logger = require('./logger')
+const Logger = require('../logger')
 const LOGGER = new Logger('db')
 
 const { 
     STORAGE_PATH,
     STORAGE_FILENAME
-} = require('../config/main.config')
+} = require('../../config/main.config')
 
 function init () {
     return new Promise((resolve, reject) => {
