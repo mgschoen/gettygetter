@@ -1,4 +1,5 @@
 const GettyClient = require('gettyimages-api')
+const ObjectId = require('mongodb').ObjectId
 
 const KeywordsInterface = require('./keywords')
 const { getImageMetaFromWebpage } = require('./scraper')
@@ -49,26 +50,25 @@ function fetchMetaForImages (gettyIds) {
     })
 }
 
-function setLeadImageInArticles (db, articleIDs, imageObject) {
-    let collection = db.getCollection('articles')
-    collection.updateWhere(doc => {
-        return articleIDs.includes(doc.$loki)
-    }, doc => {
-        doc.leadImage = imageObject
-        doc.gettyMeta = true
-        return doc
-    })
-    db.saveDatabase()
+async function setLeadImageInArticles (mongo, articleIDs, imageObject) {
+    let articleObjectIds = articleIDs.map(id => ObjectId(id))
+    await mongo.collections.articles.updateMany(
+        {_id: {$in: articleObjectIds}}, 
+        {$set: {
+            leadImage: imageObject,
+            gettyMeta: true
+        }}
+    )
 }
 
 /**
  * Searches the whole corpus for articles with Getty images as lead images,
  * checks wether they already have lead image metadata assigned, and if not, 
  * requests that data from the Getty API and updates the collection
- * @param {object} db Loki.js database
+ * @param {object} mongo mongoDB interface
  * @returns {Promise} resolved when done
  */
-function fetchLeadImageMeta (db) {
+async function fetchLeadImageMeta (mongo) {
 
     function apiRequestLoop (startIndex, windowWidth, finishedCallback) {
 
@@ -77,7 +77,7 @@ function fetchLeadImageMeta (db) {
         let window = imageIDs.slice(startIndex, startIndex + windowWidth)
         if (window.length > 0) {
             // request the data
-            fetchMetaForImages(window).then(response => {
+            fetchMetaForImages(window).then(async response => {
                 
                 // API does not offer access to _every_ image, therefore
                 // we print the number of successfully received datasets
@@ -95,13 +95,13 @@ function fetchLeadImageMeta (db) {
                     // update the keywords collection with new terms
                     let keywords = []
                     for (let kw of imageMeta.keywords) {
-                        let keywordLokiID = Keywords.insertWithObject(kw)
-                        if (keywordLokiID) {
-                            keywords.push(keywordLokiID)
+                        let keywordMongoID = await mongo.insertKeywordWithObject(kw)
+                        if (keywordMongoID) {
+                            keywords.push(keywordMongoID)
                         }
                     }
                     // store metadata in each article associated with the image
-                    setLeadImageInArticles(db, articleIDs, {
+                    await setLeadImageInArticles(mongo, articleIDs, {
                         id: imageMeta.id,
                         title: imageMeta.title,
                         caption: imageMeta.caption,
@@ -111,8 +111,14 @@ function fetchLeadImageMeta (db) {
                 }
 
             }).catch(error => {
-                LOGGER.warn(`Error fetching metadata for images ${ids}: ${error.message}`)
+                LOGGER.warn(`Error fetching metadata for images ${imageIDs}: ${error.message}`)
                 console.log(error.stack)
+                // 404 = not found -> append all imageIDs to not found list
+                if (error.statusCode === 404) {
+                    for (let imageId of imageIDs) {
+                        imagesNotFoundByApi[imageId] = imageArticleRelation[imageId]
+                    }
+                }
             }).then(() => {
                 apiRequestLoop(startIndex + windowWidth, windowWidth, finishedCallback)
             })
@@ -133,13 +139,13 @@ function fetchLeadImageMeta (db) {
 
                     let keywords = []
                     for (let kw of imageMeta.keywords) {
-                        let keywordLokiID = Keywords.insertWithString(kw)
-                        if (keywordLokiID) {
-                            keywords.push(keywordLokiID)
+                        let keywordMongoID = mongo.insertKeywordWithString(kw)
+                        if (keywordMongoID) {
+                            keywords.push(keywordMongoID)
                         }
                     }
 
-                    setLeadImageInArticles(db, imagesNotFoundByApi[imageID], {
+                    setLeadImageInArticles(mongo, imagesNotFoundByApi[imageID], {
                         id: imageMeta.id,
                         title: imageMeta.title,
                         caption: imageMeta.caption,
@@ -164,10 +170,8 @@ function fetchLeadImageMeta (db) {
 
     // begin main function
     let LOGGER = new Logger('getty/api', 'fetchLeadImageMeta')
-    let Keywords = new KeywordsInterface(db)
-    let collection = db.getCollection('articles')
-    let articles = collection.find({containsGettyIDInLeadImage: true}).filter(doc => {
-        return (doc.leadImage) ? false : true
+    let articles = await mongo.getArticles({containsGettyIDInLeadImage: true}, doc => {
+        return !doc.leadImage
     })
     let imageArticleRelation = {}
     let imagesNotFoundByApi = {}
@@ -180,9 +184,9 @@ function fetchLeadImageMeta (db) {
             imageID = doc.article.images[0].gettyID
         }
         if (imageArticleRelation[imageID]) {
-            imageArticleRelation[imageID].push(doc.$loki)
+            imageArticleRelation[imageID].push(doc._id)
         } else {
-            imageArticleRelation[imageID] = [ doc.$loki ]
+            imageArticleRelation[imageID] = [ doc._id ]
         }
     }
 

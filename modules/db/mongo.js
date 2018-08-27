@@ -46,7 +46,7 @@ function validateObject (object, requiredFields) {
     return {valid: true}
 }
 
-function cleanSingleResult (doc, includeId) {
+function sanitizeSingleResult (doc, includeId) {
     if (!doc)
         return null
     let copy = {...doc}
@@ -58,9 +58,9 @@ function cleanSingleResult (doc, includeId) {
     return copy
 }
 
-async function cleanResultCursor (cursor, includeIds) {
+async function sanitizeResultCursor (cursor, includeIds) {
     return await cursor.map(doc => {
-        return cleanSingleResult(doc, includeIds)
+        return sanitizeSingleResult(doc, includeIds)
     }).toArray()
 }
 
@@ -117,6 +117,18 @@ Mongo.prototype.getArticle = async function (id) {
     return article
 }
 
+Mongo.prototype.getArticleWithUrl = async function (url) {
+    return sanitizeSingleResult(await this.collections.articles.findOne({url}), true)
+}
+
+Mongo.prototype.getArticles = async function (customQuery, filterFunction) {
+    let query = customQuery || {}
+    let filter = typeof filterFunction === 'function' ? filterFunction : doc => doc
+    let result = await this.collections.articles.find(query)
+    let sanitized = await sanitizeResultCursor(result, true)
+    return sanitized.filter(filter)
+}
+
 Mongo.prototype.insertArticle = async function (articleObject) {
     // validate article object
     let validation = validateObject(articleObject, ARTICLE_REQUIRED_FIELDS)
@@ -125,7 +137,7 @@ Mongo.prototype.insertArticle = async function (articleObject) {
         return null
     }
 
-    let existingArticle = cleanSingleResult(await this.collections.articles.findOne({url: articleObject.url}), true)
+    let existingArticle = await this.getArticleWithUrl(articleObject.url)
     if (existingArticle) {
         LOGGER.error(`Cannot store article. Article with url ${articleObject.url} already ` +
             `exists: ${existingArticle._id}`)
@@ -138,6 +150,21 @@ Mongo.prototype.insertArticle = async function (articleObject) {
         return insertedId.toString()
     } catch (error) {
         LOGGER.error(error.message)
+        return null
+    }
+}
+
+Mongo.prototype.updateArticle = async function (id, updateOperations) {
+    // validate id
+    let queryId
+    if (!(queryId = validateId(id)))
+        return null
+
+    let update = await this.collections.articles.updateOne({_id: queryId}, updateOperations)
+    if (update.result.ok) {
+        return true
+    } else {
+        LOGGER.error(`Article update not successful`)
         return null
     }
 }
@@ -158,7 +185,7 @@ Mongo.prototype.getKeyword = async function (id) {
 Mongo.prototype.getKeywordWithGettyId = async function (gettyId) {
     let result = await this.collections.keywords.findOne({keyword_id: gettyId})
     if (result) {
-        return cleanSingleResult(result, true)
+        return sanitizeSingleResult(result, true)
     }
     return null
 }
@@ -176,12 +203,12 @@ Mongo.prototype.getKeywords = async function (keywordIds) {
 
     // query
     let keywords = await this.collections.keywords.find({_id: {$in: queryIds}})
-    return await cleanResultCursor(keywords)
+    return await sanitizeResultCursor(keywords)
 }
 
 Mongo.prototype.getKeywordsWithString = async function (text) {
     let result = await this.collections.keywords.find({text})
-    return await cleanResultCursor(result, true)
+    return await sanitizeResultCursor(result, true)
 }
 
 Mongo.prototype.insertKeyword = async function (keywordObject) {

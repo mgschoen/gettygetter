@@ -1,4 +1,4 @@
-const DB = require('./modules/db/loki')
+const Mongo = require('./modules/db/mongo')
 const { getArticleTeasers } = require('./modules/bbc/section')
 const { getArticleContent } = require('./modules/bbc/article')
 const { setFlags } = require('./modules/set-flags')
@@ -39,8 +39,8 @@ let sectionRequestLoop = (urls, index, corpus, finishedCallback) => {
 
 let fetchMissingCalaisTags = () => {
     return new Promise(async (resolve, reject) => {
-        let untaggedArticles = collection.find({calaisTags: {$ne: true}})
-        let CalaisInterface = new Calais(db)
+        let untaggedArticles = await mongo.getArticles({calaisTags: {$ne: true}})
+        let CalaisInterface = new Calais(mongo)
         LOGGER.info(`Fetching Calais tags for ${untaggedArticles.length} articles`)
         // Fetch calais tags for all untagged articles
         for (let article of untaggedArticles) {
@@ -57,7 +57,7 @@ let fetchMissingCalaisTags = () => {
                     LOGGER.info(`Trying again (iteration ${iteration}/3)...`)
                 }
                 try {
-                    await CalaisInterface.fetchFromApi(article.$loki, fullText)
+                    await CalaisInterface.fetchFromApi(article._id.toString(), fullText)
                     break
                 } catch (error) {
                     LOGGER.error(error.message)
@@ -76,7 +76,7 @@ let fetchMissingCalaisTags = () => {
  * @param {Array} corpus array containing all information about all articles we have
  * @param {number} index index of article in corpus
  */
-let articleRequestLoop = (corpus, index) => {
+let articleRequestLoop = async (corpus, index) => {
 
     let nextTick = _ => {
         let nextIndex = index + 1
@@ -85,12 +85,15 @@ let articleRequestLoop = (corpus, index) => {
         } else {
             LOGGER.log('Done scraping.')
             LOGGER.log('Postprocessing corpus...')
-            setFlags(db).then(() => {
+            // TODO: change setFlags implementation
+            setFlags(mongo).then(() => {
                 LOGGER.info('Fetching lead image metadata for the whole corpus')
-                Getty.fetchLeadImageMeta(db).then(() => {
+                // TODO: change Getty.fetchLeadImageMeta implementation
+                Getty.fetchLeadImageMeta(mongo).then(() => {
                     LOGGER.log('Done fetching image metadata.')
                     fetchMissingCalaisTags().then(() => {
                         LOGGER.log('Done.')
+                        process.exit()
                     })
                 }).catch(e => {
                     LOGGER.warn(`Error fetching image metadata: ${e.message}`)
@@ -103,13 +106,12 @@ let articleRequestLoop = (corpus, index) => {
     }
 
     let article = corpus[index]
-    let sameInDB = collection.find({url: article.url})
-    if (sameInDB.length === 0) {
+    let sameInDB = await mongo.getArticleWithUrl(article.url)
+    if (!sameInDB) {
         getArticleContent(article)
-            .then(result => {
+            .then(async result => {
                 if (result) {
-                    collection.insert(result)
-                    db.saveDatabase()
+                    await mongo.insertArticle(result)
                 }
             })
             .catch(error => {
@@ -123,11 +125,8 @@ let articleRequestLoop = (corpus, index) => {
     }
 }
 
-let db, collection
-
-DB().then(database => {
-    db = database
-    collection = db.getCollection('articles')
+let mongo = new Mongo()
+mongo.init().then(() => {
     sectionRequestLoop(BBC_SECTION_URLS, 0, [], corpus => {
         articleRequestLoop(corpus, 0)
     })

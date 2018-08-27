@@ -1,21 +1,23 @@
 const Util = require('./util')
 
-function setFlags (db) {
+const REQUIRED_OPERATIONS = [
+    'containsGettyID', 
+    'containsGettyIDInLeadImage', 
+    'teaser.img.gettyID', 
+    'gettyID'
+]
+
+function setFlags (mongo) {
 
     return new Promise((resolve, reject) => {
 
-        let collection = db.getCollection('articles')
-        if (!collection) {
-            reject(new Error('No collection named "articles" found in database'))
-            return
-        }
+        let collection = mongo.collections.articles
 
         // Use collection.where query as a substitute for forEach
-        collection.where(doc => {
-            // reset incorrectly set flags from earlier versions
-            delete doc.gettyID
-            delete doc.containsGettyID
-            delete doc.containsGettyIDInLeadImage
+        collection.find().forEach(async doc => {
+
+            let setOperations = {}
+            let unsetOperations = {}
             
             let foundGettyID = false,
                 foundGettyIDInLeadImage = false
@@ -25,7 +27,7 @@ function setFlags (db) {
                 if (teaserImageID) {
                     foundGettyID = true
                     foundGettyIDInLeadImage = true
-                    doc.teaser.img.gettyID = teaserImageID
+                    setOperations['teaser.img.gettyID'] = teaserImageID
                 }
             }
             // check all images within article
@@ -34,25 +36,35 @@ function setFlags (db) {
                 let imageGettyID = Util.extractGettyID(image.src)
                 if (imageGettyID) {
                     foundGettyID = true
-                    image.gettyID = imageGettyID
+                    setOperations[`article.images.${i}.gettyID`] = imageGettyID
                     if (i == 0) {
                         foundGettyIDInLeadImage = true
                     }
                 }
             }
+
             // update doc
             if (foundGettyID) {
-                doc.containsGettyID = true
+                setOperations['containsGettyID'] = true
             }
             if (foundGettyIDInLeadImage) {
-                doc.containsGettyIDInLeadImage = true
+                setOperations['containsGettyIDInLeadImage'] = true
             }
-            collection.update(doc)
-        })
-        
-        db.saveDatabase()
+            for (let operation of REQUIRED_OPERATIONS) {
+                if (!setOperations.hasOwnProperty(operation)) {
+                    unsetOperations[operation] = ''
+                }
+            }
+            let allOperations = {}
+            if (Object.keys(setOperations).length > 0) {
+                allOperations['$set'] = setOperations
+            }
+            if (Object.keys(unsetOperations).length > 0) {
+                allOperations['$unset'] = unsetOperations
+            }
+            await collection.updateOne({_id: doc._id}, allOperations)
+        }, resolve)
 
-        resolve()
     })
 }
 
