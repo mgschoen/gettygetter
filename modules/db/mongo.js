@@ -58,10 +58,11 @@ function sanitizeSingleResult (doc, includeId) {
     return copy
 }
 
-async function sanitizeResultCursor (cursor, includeIds) {
-    return await cursor.map(doc => {
+async function sanitizeResultCursor (cursor, includeIds, keepCursor) {
+    let sanitized = cursor.map(doc => {
         return sanitizeSingleResult(doc, includeIds)
-    }).toArray()
+    })
+    return keepCursor ? sanitized : await sanitized.toArray()
 }
 
 function Mongo () {
@@ -121,11 +122,11 @@ Mongo.prototype.getArticleWithUrl = async function (url) {
     return sanitizeSingleResult(await this.collections.articles.findOne({url}), true)
 }
 
-Mongo.prototype.getArticles = async function (customQuery, filterFunction) {
+Mongo.prototype.getArticles = async function (customQuery, filterFunction, asCursor) {
     let query = customQuery || {}
     let filter = typeof filterFunction === 'function' ? filterFunction : doc => doc
     let result = await this.collections.articles.find(query)
-    let sanitized = await sanitizeResultCursor(result, true)
+    let sanitized = await sanitizeResultCursor(result, true, asCursor)
     return sanitized.filter(filter)
 }
 

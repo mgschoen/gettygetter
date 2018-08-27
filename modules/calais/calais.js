@@ -27,18 +27,19 @@ function groupObjectList (list, groupProperty, includeOther) {
     return groupedList
 }
 
-module.exports = function (mongo) {
+module.exports = function (mongo, mute) {
 
     this.mongo = mongo
     this.calaisCollection = mongo.collections.calais
+    this.log = mute ? false : true
 
     this.getFromStorage = async function (articleId) {
-        let queryResult = await this.calaisCollection.find({forArticle: articleId})
+        let queryResult = await this.calaisCollection.find({forArticle: articleId}).toArray()
         if (queryResult.length === 1) {
             return queryResult[0]
-        } else if (queryResult.lenght < 1) {
+        } else if (queryResult.length < 1 && this.log) {
             LOGGER.warn(`No storage entry for article ${articleId}`)
-        } else {
+        } else if (this.log) {
             LOGGER.warn(`Storage entries for article ${articleId} are ambiguous`)
         }
         return null
@@ -46,7 +47,9 @@ module.exports = function (mongo) {
 
     this.fetchFromApi = function (articleId, fullText) {
 
-        LOGGER.info(`Requesting Calais tags for article $${articleId}: ${fullText.slice(0,50)}...`)
+        
+        if (this.log) 
+            LOGGER.info(`Requesting Calais tags for article $${articleId}: ${fullText.slice(0,50)}...`)
 
         return new Promise((resolve, reject) => {
             
@@ -61,7 +64,8 @@ module.exports = function (mongo) {
             }, async (error, response, responseBody) => {
     
                 if (error) {
-                    LOGGER.error(error.message)
+                    if (this.log) 
+                        LOGGER.error(error.message)
                     reject(error)
                     return
                 }
@@ -76,7 +80,8 @@ module.exports = function (mongo) {
                         reason = responseBody
                     }
                     let errorMessage = `${statusMessage}: ${reason}`
-                    LOGGER.error(errorMessage)
+                    if (this.log)
+                        LOGGER.error(errorMessage)
                     reject(new Error(errorMessage))
                     return
                 }
@@ -99,7 +104,8 @@ module.exports = function (mongo) {
                     await this.calaisCollection.deleteMany({forArticle: articleId})
                     await this.calaisCollection.insertOne(dbEntry)
                     await this.mongo.updateArticle(articleId, {$set: {calaisTags: true}})
-                    LOGGER.info(`Stored about ${Object.keys(body).length - 3} tags for article $${articleId} successfully`)
+                    if (this.log)
+                        LOGGER.info(`Stored about ${Object.keys(body).length - 3} tags for article $${articleId} successfully`)
                     resolve()
                 } catch (error) {
                     reject(error)
