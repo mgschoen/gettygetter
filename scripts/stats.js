@@ -1,8 +1,6 @@
-const fs = require('fs')
 const prettyBytes = require('pretty-bytes')
-const folderSize = require('get-folder-size')
 
-const DB = require('../modules/db/loki')
+const Mongo = require('../modules/db/mongo')
 const Logger = require('../modules/logger')
 const LOGGER = new Logger('stats')
 
@@ -11,32 +9,31 @@ const {
     STORAGE_FILENAME
 } = require('../config/main.config')
 
-DB().then(db => {
-
+let mongo = new Mongo()
+mongo.init().then(async () => {
+    
     LOGGER.log('Determining statistics...')
-    let collection = db.getCollection('articles')
-    let numDocs = collection.count()
+    let articlesCollection = mongo.collections.articles
+    let numDocs = await articlesCollection.countDocuments()
 
-    let gettyIDArticles = collection.find({containsGettyID: true})
-    let gettyLeadImageArticles = collection.find({containsGettyIDInLeadImage: true})
+    let gettyIDArticles = await articlesCollection.countDocuments({containsGettyID: true})
+    let gettyLeadImageArticles = await articlesCollection.countDocuments({containsGettyIDInLeadImage: true})
 
     // Storage stats
-    let stats = fs.statSync(STORAGE_PATH + STORAGE_FILENAME)
-    folderSize(STORAGE_PATH, (err, size) => {
+    let stats = await mongo.db.stats()
+    LOGGER.log('Done.')
 
-        LOGGER.log('Done.')
-
-        console.log()
-        console.log(`  Articles total: ${numDocs}`)
-        console.log(`  Articles with at least one Getty ID exposed: ${gettyIDArticles.length}`)
-        console.log(`  Articles where lead image exposes Getty ID: ${gettyLeadImageArticles.length}`)
-        console.log()
-        console.log(`  ##### Storage`)
-        console.log(`  Size: ${prettyBytes(size)}`)
-        console.log(`  Last Modified: ${new Date(stats.mtimeMs)}`)
-        console.log()
-    })
+    console.log()
+    console.log(`  Articles total: ${numDocs}`)
+    console.log(`  Articles with at least one Getty ID exposed: ${gettyIDArticles}`)
+    console.log(`  Articles where lead image exposes Getty ID: ${gettyLeadImageArticles}`)
+    console.log()
+    console.log(`  ##### Storage`)
+    console.log(`  Size: ${prettyBytes(stats.storageSize)}`)
+    console.log()
 
 }).catch(e => {
     LOGGER.warn(e.message)
+}).then(() => {
+    process.exit()
 })
