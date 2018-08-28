@@ -135,11 +135,11 @@ async function fetchLeadImageMeta (mongo) {
             
             let imageID = imageIDs[index]
             getImageMetaFromWebpage(imageID)
-                .then(imageMeta => {
+                .then(async imageMeta => {
 
                     let keywords = []
                     for (let kw of imageMeta.keywords) {
-                        let keywordMongoID = mongo.insertKeywordWithString(kw)
+                        let keywordMongoID = await mongo.insertKeywordWithString(kw)
                         if (keywordMongoID) {
                             keywords.push(keywordMongoID)
                         }
